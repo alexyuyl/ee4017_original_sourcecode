@@ -9,7 +9,7 @@ from Crypto.Hash import SHA256
 import binascii
 import requests
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 from urllib.parse import urlparse
 
@@ -70,17 +70,18 @@ class Blockchain(object):
 
     def register_node(self, address):
         parsed_url = urlparse(address)
-        if parsed_url.netloc:
-            # for case http://0.0.0.0:1000
+        if not parsed_url.netloc:
+            raise HTTPException(status_code=404, detail='Invalid URL')
+
+        else:
+            # for case http://127.0.0.1:1000
             self.nodes.add(parsed_url.netloc)
             response = requests.get(f'{address}/get_node').json()
             node_list = response['total_nodes']
-            if f'0.0.0.0:{port}' in node_list:
-                node_list.remove(f'0.0.0.0:{port}')
+            if f'127.0.0.1:{port}' in node_list:
+                node_list.remove(f'127.0.0.1:{port}')
             for res in node_list:
                 self.nodes.add(res)
-        else:
-            raise ValueError('Invalid URL')
     
     def valid_chain(self, chain):
         last_block = chain[0]
@@ -290,4 +291,4 @@ def consensus():
 
 if __name__ == "__main__":
     port = 2000
-    uvicorn.run("__main__:app", host="0.0.0.0", port=port)
+    uvicorn.run("__main__:app", host="127.0.0.1", port=port)
